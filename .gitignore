@@ -1,0 +1,33 @@
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.venv-*/
+venv/
+.env
+.env.*
+!.env.example
+
+# Frontend dependencies and build output
+node_modules/
+dist/
+.vite/
+
+# Generated image files
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+backend/storage/outputs/*
+!backend/storage/outputs/.gitkeep
+
+# Test and coverage artifacts
+.coverage
+htmlcov/
+*.log
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
