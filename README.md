@@ -1,168 +1,282 @@
-py --version# Image DSL Compiler
+# AI Image Processing Compiler
 
-A compiler for a small domain-specific language that describes image-processing
-pipelines. Programs are lexed, parsed, semantically checked, lowered to an
-intermediate representation, optimised by a cost-model-guided rewriter, and
-executed on OpenCV. The React frontend shows every stage.
+A domain-specific language (DSL) compiler for image processing that lets users write simple commands to transform images through a web-based interface.
 
+The project combines compiler design, image processing, optimization, and full-stack web development in one application.
+
+## Overview
+
+Instead of manually applying image filters through separate tools, users can write a small program using the Image Processing DSL. The compiler parses the program, validates its commands, processes the requested transformations, and produces an output image.
+
+### Key Features
+
+- **Custom DSL:** A simple command-based language for image manipulation.
+- **Compiler pipeline:** Lexical analysis, parsing, semantic validation, intermediate representation, and execution.
+- **16 image-processing commands:** Supports basic and advanced transformations.
+- **Optimization:** Compiler optimization passes for supported operations.
+- **Web interface:** React and Vite frontend for writing and running DSL programs.
+- **Python API:** FastAPI backend for compilation and image-processing requests.
+- **Validation and security:** Input validation, command restrictions, and resource limits.
+- **Testing:** Automated tests for compiler functionality, parsing, API behavior, and new commands.
+
+## Technology Stack
+
+| Component | Technology |
+|---|---|
+| Frontend | React, Vite, JavaScript |
+| Backend | Python, FastAPI |
+| Compiler | Custom DSL lexer, parser, semantic analyzer, and intermediate representation |
+| Image processing | OpenCV, NumPy |
+| API server | Uvicorn |
+| Testing | pytest |
+| Version control | Git and GitHub |
+
+## Supported DSL Commands
+
+The language supports 16 commands.
+
+| Command | Purpose | Example |
+|---|---|---|
+| `LOAD` | Load an input image | `LOAD "input.jpg"` |
+| `SAVE` | Save the processed image | `SAVE "output.jpg"` |
+| `RESIZE` | Change image dimensions | `RESIZE 800 600` |
+| `GRAYSCALE` | Convert to grayscale | `GRAYSCALE` |
+| `BLUR` | Apply blur | `BLUR 3` |
+| `ROTATE` | Rotate an image | `ROTATE 90` |
+| `EDGE` | Detect edges | `EDGE 100 200` |
+| `VIGNETTE` | Apply a vignette effect | `VIGNETTE 50` |
+| `BRIGHTNESS` | Adjust brightness | `BRIGHTNESS 20` |
+| `CONTRAST` | Adjust contrast | `CONTRAST 1.2` |
+| `SATURATION` | Adjust color saturation | `SATURATION 1.5` |
+| `FLIP` | Flip an image horizontally or vertically | `FLIP HORIZONTAL` |
+| `CROP` | Crop a rectangular image region | `CROP 0 0 300 300` |
+| `SHARPEN` | Enhance image details | `SHARPEN` |
+| `THRESHOLD` | Apply intensity thresholding | `THRESHOLD 128` |
+| `MEDIAN_BLUR` | Apply median filtering | `MEDIAN_BLUR 3` |
+
+*Examples show the intended DSL syntax. Valid argument ranges and behavior are determined by the implementation.*
+
+## Example Program
+
+```text
+LOAD "input.jpg"
+BRIGHTNESS 20
+CONTRAST 1.2
+SATURATION 1.5
+FLIP HORIZONTAL
+SHARPEN
+SAVE "output.jpg"
 ```
-LOAD "photo.jpg"
+
+This program loads an image, applies several transformations, and saves the result.
+
+Another example using the original commands:
+
+```text
+LOAD "input.jpg"
+GRAYSCALE
 BLUR 3
-EDGE 80 160
-RESIZE 400 300
-SAVE "edges.png"
+ROTATE 90
+SAVE "output.jpg"
 ```
 
-Written naively, that program blurs and edge-detects twelve megapixels in order
-to produce a 0.12 megapixel result. The optimiser hoists the `RESIZE` above both
-filters, and the benchmark reports the measured difference.
+## Architecture
 
-## Running it
+The application follows a compiler-based processing pipeline.
 
-**Backend** (Python 3.10+):
+```text
+User writes DSL program
+          |
+          v
+     React Frontend
+          |
+          v
+      FastAPI API
+          |
+          v
+      Lexical Analysis
+          |
+          v
+         Parser
+          |
+          v
+    Semantic Analysis
+          |
+          v
+ Intermediate Representation
+          |
+          v
+      Optimization
+          |
+          v
+    Image Execution
+          |
+          v
+     Output Image
+```
+
+The lexer identifies tokens, the parser builds a structured program, semantic analysis validates commands and arguments, and the subsequent compiler stages prepare and execute the image-processing operations.
+
+## Project Structure
+
+```text
+ai-image-processing-compiler-v2/
+├── backend/
+│   ├── app.py
+│   ├── security.py
+│   ├── config.py
+│   ├── compiler/
+│   │   ├── lexer.py
+│   │   ├── parser.py
+│   │   ├── semantic.py
+│   │   ├── ast_nodes.py
+│   │   ├── ir.py
+│   │   ├── optimizer.py
+│   │   ├── executor.py
+│   │   ├── pipeline.py
+│   │   ├── trace.py
+│   │   └── errors.py
+│   └── tests/
+├── frontend/
+│   └── src/
+├── docs/
+├── examples/
+├── requirements.txt
+└── README.md
+```
+
+## Getting Started
+
+### Prerequisites
+
+Install the following:
+
+- Python 3.10 or a compatible version supported by the project's dependencies
+- Node.js and npm
+- Git
+
+### 1. Clone the repository
 
 ```bash
+git clone https://github.com/anshgupta8625/ai-image-processing-compiler-v2.git
+cd ai-image-processing-compiler-v2
+```
+
+### 2. Set up the backend
+
+On Windows PowerShell:
+
+```powershell
 cd backend
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r ../requirements.txt
-uvicorn app:app --reload --port 8000
+
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
 ```
 
-**Frontend** (Node 18+), in a second terminal:
+If `requirements.txt` is located in the repository root rather than `backend`, run the installation command from the root using:
 
-```bash
+```powershell
+pip install -r .\requirements.txt
+```
+
+Start the API from the `backend` directory:
+
+```powershell
+python -m uvicorn app:app --reload
+```
+
+The local API should be available at:
+
+- API: http://127.0.0.1:8000
+- Interactive API documentation: http://127.0.0.1:8000/docs
+
+### 3. Set up the frontend
+
+Open a second terminal:
+
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>. Vite proxies `/api` to the backend, so the browser
-sees a single origin in development.
+Open the local URL printed by Vite, usually:
 
-**Tests:**
+http://localhost:5173/
 
-```bash
-cd backend && pytest -q       # 196 tests
-cd frontend && npm test       # 14 tests
+### 4. Run the application
+
+1. Open the frontend in your browser.
+2. Upload or select an input image using the application's interface.
+3. Enter a DSL program in the editor.
+4. Execute the program.
+5. Inspect the processing result and any compiler diagnostics.
+
+Use the interface's expected image-upload and output workflow when choosing filenames in your DSL program.
+
+## Running Tests
+
+From the `backend` directory, activate the virtual environment and run:
+
+```powershell
+python -m pytest -v
 ```
 
-## The language
+To run the tests specifically covering the new commands:
 
-Eight commands, no variables, no expressions, and no loops:
-
-| | |
-|---|---|
-| `LOAD "file"` | load the uploaded image (first, exactly once) |
-| `RESIZE w h` | scale to `w × h` |
-| `GRAYSCALE` | convert to single channel |
-| `BLUR r` | Gaussian blur, kernel `2r+1` |
-| `ROTATE a` | rotate by a multiple of 90° |
-| `EDGE [low high]` | Canny edge detection, defaults `100 200` |
-| `VIGNETTE s` | darken smoothly towards the corners; `s` is the % lost at the corners (1-100) |
-| `SAVE "file"` | write the result (last) |
-
-Full grammar and ranges in [docs/DSL_REFERENCE.md](docs/DSL_REFERENCE.md).
-
-The absence of loops is deliberate. A language with no iteration construct
-cannot be made to run forever, which removes a whole class of denial-of-service
-concern without needing a watchdog to catch it.
-
-## Compilation stages
-
-| Stage | Module | What it does |
-|---|---|---|
-| Security | `security.py` | injection scan, upload and path validation, resource limits |
-| Lexer | `compiler/lexer.py` | source → tokens, with exact positions |
-| Parser | `compiler/parser.py` | tokens → AST, arity checking |
-| Semantics | `compiler/semantic.py` | ordering rules, types, ranges, filename safety |
-| Lowering | `compiler/ir.py` | AST → flat IR with cost annotations |
-| Optimiser | `compiler/optimizer.py` | six passes to a fixpoint |
-| Executor | `compiler/executor.py` | IR → OpenCV via a static dispatch table |
-
-Design rationale — including why there is both an AST and an IR, when the
-lowering is nearly one-to-one — is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## The optimiser
-
-Six passes: constant folding of rotations, `GRAYSCALE` idempotence, redundant
-resize elimination, blur fusion (`√(a²+b²)`), strength reduction, and dead code
-elimination. They run repeatedly until nothing changes. Strength reduction moves
-a shrinking `RESIZE` above `BLUR`, `EDGE`, `GRAYSCALE` and `VIGNETTE`; all four
-either commute with a downscale or are defined in resolution-independent
-coordinates, which is what makes the reorder legal.
-
-Each rewrite is proposed and then **accepted only if a cost model says the
-program got cheaper**, so a pass can decline its own transformation. On the
-word "AI": this is heuristic search guided by a cost function, in the classical
-symbolic sense. There is no trained model here.
-
-The frontend reports the cost model's *predicted* saving next to the *measured*
-saving: the median of five timed runs of each pipeline, after a discarded
-warm-up, with the min-max spread shown underneath. Where prediction and
-measurement disagree, the cost model is wrong, and that is shown rather than
-hidden. If the gap between the two medians is smaller than the run-to-run
-spread, the UI says the difference is not distinguishable from noise instead of
-claiming a speed-up.
-
-## The interface
-
-- **Line by line.** After a run, the *Line by line* tab follows each source line
-  through every stage: its tokens, the AST node, the semantic checks it passed,
-  its IR instruction and cost, what the optimiser did to it (kept, moved,
-  rewritten or removed, and which pass did it), and its measured execution time.
-  Per-line times are the median of the benchmark's warm runs, not a single cold
-  run, and each is labelled with its basis.
-- **Command guide (ⓘ, top right).** Every command, its parameters and ranges
-  (read live from `/api/limits`, so they cannot drift from the backend), and what
-  the optimiser does with it.
-- **Profile (top right).** Team, course and stack.
-- **Vignette.** A slider that writes a `VIGNETTE` line into the program. The
-  editor stays the single source of truth; the slider only types for you.
-- **Security shield.** See below.
-
-## Security
-
-Every input crosses `security.py` before reaching a compiler stage: a command
-whitelist, filename rejection (not sanitisation) for path traversal, four-gate
-upload validation including magic-byte agreement, and resource ceilings on
-image size, program length and blur radius. Execution dispatches through a
-static dictionary of Python functions — no `eval`, no `getattr` on user text.
-
-Errors carry two payloads: a generic message for the user and full detail for
-the server log, so a traversal attempt returns `"Invalid file path."` and never
-a server path.
-
-The **Security & Validation** panel is the visible face of this. Every program
-crosses five gates, each described in plain English in the UI: command
-validation, file validation, path validation, resource limits and safe
-execution. When a program is rejected the panel names the exact gate that fired,
-shows its code and line, marks every later gate *not reached*, and explains why
-that class of input is dangerous. Four one-click demos (*Try an attack*) load a
-harmless but hostile program (path traversal, code injection, resource abuse, an
-unknown command) so the shield can be watched working.
-
-The five gates are real checks on the raw program text, not decorations, and a
-fuzz test asserts the converse that matters: wherever the compiler accepts a
-program, every gate passes too, so the shield can never show a false alarm.
-
-This is an **academic security layer**, not an audited one. The
-[limitations section](docs/SECURITY.md#11-limitations) lists what it does not
-protect against: no authentication, no rate limiting, no OS-level sandbox, and
-a dependency on OpenCV's own memory safety.
-
-## Layout
-
-```
-backend/     FastAPI app, security layer, compiler package, 196 tests
-frontend/    React + Vite explorer UI, 14 tests
-docs/        SECURITY.md, ARCHITECTURE.md, DSL_REFERENCE.md
-examples/    sample programs, including ones that exercise each optimiser pass
+```powershell
+python -m pytest tests/test_new_commands.py -v
 ```
 
-## Known weaknesses
+## Deployment
 
-- The cost model is calibrated on one machine; predicted percentages drift on
-  different hardware, though the ordering it produces stays right.
-- Execution is synchronous and single-process; concurrent runs contend.
-- `strength-reduction` moves one resize per round, so programs with several
-  interleaved resizes converge over multiple rounds rather than in one pass.
+The frontend and backend can be deployed independently.
+
+- **Frontend:** Vercel
+- **Backend:** Render
+
+The deployed frontend must use the public backend API URL instead of `localhost`. Configure the production API endpoint and CORS settings appropriately before deployment.
+
+**Live demo:** Add the Vercel URL after deployment.
+
+**Backend API:** Add the Render URL after deployment.
+
+## Security Considerations
+
+- Validate DSL commands and their arguments before execution.
+- Restrict file access to permitted input and output locations.
+- Apply operation-count and image-processing resource limits.
+- Keep credentials and environment-specific secrets out of version control.
+- Configure CORS to allow only the intended frontend origins in production.
+
+## Future Improvements
+
+- Expand the DSL with additional image transformations.
+- Improve optimization passes and execution-cost estimation.
+- Provide more detailed compiler diagnostics and execution traces.
+- Add interactive visualization of intermediate representations.
+- Expand automated testing and performance benchmarking.
+
+## Learning Outcomes
+
+This project demonstrates practical integration of:
+
+- Compiler construction and language processing
+- Abstract syntax trees and intermediate representations
+- Semantic validation and optimization
+- Image-processing algorithms
+- REST API development
+- React-based frontend development
+- Automated testing and deployment workflows
+
+## Author
+
+**Ansh Gupta**  
+B.Tech, Computer Science and Engineering — Data Science  
+Vellore Institute of Technology, Vellore
+
+## License
+
+Add your preferred open-source license here if you intend to distribute the project under one.
