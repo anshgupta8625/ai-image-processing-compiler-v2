@@ -37,7 +37,7 @@ def test_arity_errors(source):
 
 def test_unknown_command_rejected_by_parser():
     with pytest.raises(ParseError, match="Unknown command"):
-        build("SHARPEN 3")
+        build("PIXELATE 3")
 
 
 def test_errors_carry_a_line_number():

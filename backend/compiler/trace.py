@@ -133,6 +133,26 @@ def _semantic_stage(cmd: Command, written: list) -> dict:
         add("Meaning", f"no darkening at the centre, {s}% at the corners")
     elif name == "GRAYSCALE":
         add("Arguments", "takes none; nothing to range-check")
+    elif name == "BRIGHTNESS":
+        ints()
+        add("Range", "brightness offset is between -100 and 100")
+    elif name == "CONTRAST":
+        add("Range", "contrast multiplier is between 0.1 and 3.0")
+    elif name == "SATURATION":
+        add("Range", "saturation multiplier is between 0 and 3.0")
+    elif name == "FLIP":
+        add("Direction", "direction must be HORIZONTAL or VERTICAL")
+    elif name == "CROP":
+        ints()
+        add("Bounds", "x and y are non-negative; width and height are positive; rectangle must fit the current image at execution time")
+    elif name == "SHARPEN":
+        add("Range", "sharpen strength is between 0 and 3.0")
+    elif name == "THRESHOLD":
+        ints()
+        add("Range", "threshold is an integer between 0 and 255")
+    elif name == "MEDIAN_BLUR":
+        ints()
+        add("Kernel", f"kernel is odd and between 3 and {lim.MAX_MEDIAN_BLUR_KERNEL}")
 
     return {
         "checks": checks,
@@ -181,8 +201,13 @@ def build_trace(source: str, tokens: list[Token], ast: Program,
         cmd = commands[line]
         source_line = text_lines[line - 1] if 0 < line <= len(text_lines) else ""
         line_tokens = by_line.get(line, [])
-        written = [int(t.value) if t.type == TokenType.NUMBER else t.value
-                   for t in line_tokens if t.type in (TokenType.NUMBER, TokenType.STRING)]
+        written = [
+            (float(t.value) if "." in t.value else int(t.value))
+            if t.type == TokenType.NUMBER else t.value
+            for t in line_tokens if t.type in (TokenType.NUMBER, TokenType.STRING)
+        ]
+        if cmd.name == "FLIP":
+            written = [t.value for t in line_tokens if t.type == TokenType.COMMAND][1:] + written
 
         mp_before, cost_before = u_rows[index]
         events = line_events.get(line, [])

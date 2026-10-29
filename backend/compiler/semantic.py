@@ -104,6 +104,34 @@ def _check_args(cmd) -> None:
             else:
                 cmd.args = [100, 200]  # documented defaults
 
+        elif cmd.name == "BRIGHTNESS":
+            _require_ints(cmd, line)
+            cmd.args = [sec.validate_brightness(cmd.args[0], line=line)]
+
+        elif cmd.name == "CONTRAST":
+            cmd.args = [sec.validate_contrast(cmd.args[0], line=line)]
+
+        elif cmd.name == "SATURATION":
+            cmd.args = [sec.validate_saturation(cmd.args[0], line=line)]
+
+        elif cmd.name == "FLIP":
+            cmd.args = [sec.validate_flip(cmd.args[0], line=line)]
+
+        elif cmd.name == "CROP":
+            _require_ints(cmd, line)
+            cmd.args = list(sec.validate_crop(*cmd.args, line=line))
+
+        elif cmd.name == "SHARPEN":
+            cmd.args = [sec.validate_sharpen(cmd.args[0], line=line)]
+
+        elif cmd.name == "THRESHOLD":
+            _require_ints(cmd, line)
+            cmd.args = [sec.validate_threshold(cmd.args[0], line=line)]
+
+        elif cmd.name == "MEDIAN_BLUR":
+            _require_ints(cmd, line)
+            cmd.args = [sec.validate_median_blur(cmd.args[0], line=line)]
+
     except sec.SecurityError as exc:
         raise _security_to_semantic(exc, line) from None
 

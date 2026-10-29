@@ -1,7 +1,7 @@
 """Hand-written lexer.
 
 A regex-per-token-type scanner rather than a generated one, because the DSL has
-seven keywords and three literal forms; a generator would be more machinery than
+sixteen keywords and three literal forms; a generator would be more machinery than
 the grammar deserves, and hand-rolling keeps the error positions exact.
 
 The lexer recognises a closed alphabet. Any character outside it is a LexError,
@@ -21,7 +21,7 @@ _PATTERNS = [
     ("WHITESPACE", re.compile(r"[ \t]+")),
     ("COMMENT", re.compile(r"#[^\n]*")),
     ("STRING", re.compile(r'"([^"\n\\]{0,128})"')),
-    ("NUMBER", re.compile(r"-?\d+")),
+    ("NUMBER", re.compile(r"-?\d+(?:\.\d+)?")),
     ("WORD", re.compile(r"[A-Za-z_][A-Za-z_0-9]*")),
 ]
 

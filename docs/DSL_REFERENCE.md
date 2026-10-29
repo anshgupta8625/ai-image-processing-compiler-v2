@@ -5,10 +5,13 @@
 ```
 program   := statement*
 statement := COMMAND argument* NEWLINE
-argument  := NUMBER | STRING
+argument  := NUMBER | STRING | DIRECTION
+DIRECTION := HORIZONTAL | VERTICAL
 COMMAND   := LOAD | SAVE | RESIZE | GRAYSCALE | BLUR | ROTATE | EDGE | VIGNETTE
+            | BRIGHTNESS | CONTRAST | SATURATION | FLIP | CROP | SHARPEN
+            | THRESHOLD | MEDIAN_BLUR
 STRING    := '"' [^"\n\\]{0,128} '"'
-NUMBER    := '-'? [0-9]+
+NUMBER    := '-'? [0-9]+ ('.' [0-9]+)?
 comment   := '#' .* end-of-line
 ```
 
@@ -32,6 +35,14 @@ run to end of line and are discarded by the lexer.
 | `ROTATE a` | integer | Rotate by a multiple of 90 degrees. |
 | `EDGE [low high]` | none or two integers | Canny edge detection. Defaults to `100 200`. |
 | `VIGNETTE s` | integer | Darken towards the corners with a radial falloff. Centre untouched; corners lose `s`% of their brightness. Defined in relative coordinates, so it looks the same at any size. |
+| `BRIGHTNESS n` | integer | Add or subtract brightness, from −100 to 100. |
+| `CONTRAST f` | number | Contrast multiplier from 0.1 to 3.0; 1.0 is unchanged. |
+| `SATURATION f` | number | Saturation multiplier from 0 to 3.0; 1.0 is unchanged. |
+| `FLIP HORIZONTAL` / `FLIP VERTICAL` | direction | Mirror the image horizontally or vertically. |
+| `CROP x y w h` | four integers | Crop a rectangle from top-left coordinate `(x, y)` with dimensions `w × h`. Must fit the current image. |
+| `SHARPEN f` | number | Sharpen details with strength from 0 to 3.0. |
+| `THRESHOLD n` | integer | Convert to binary black and white using threshold 0–255. |
+| `MEDIAN_BLUR k` | odd integer | Reduce noise with a kernel from 3 to 25. |
 
 ## Ranges
 
@@ -42,6 +53,13 @@ run to end of line and are discarded by the lexer.
 | `ROTATE` angle | multiple of 90, −360 … 360 |
 | `EDGE` thresholds | `0 ≤ low < high ≤ 500` |
 | `VIGNETTE` strength | 1 … 100 |
+| `BRIGHTNESS` amount | −100 … 100 |
+| `CONTRAST` factor | 0.1 … 3.0 |
+| `SATURATION` factor | 0 … 3.0 |
+| `CROP` x, y, width, height | x,y ≥ 0; width,height ≥ 1; rectangle within current image |
+| `SHARPEN` strength | 0 … 3.0 |
+| `THRESHOLD` value | 0 … 255 |
+| `MEDIAN_BLUR` kernel | odd 3 … 25 |
 | Program length | ≤ 100 lines, ≤ 50 operations |
 
 Filenames are names, not paths — see [SECURITY.md §6](SECURITY.md#6-path-traversal-protection).

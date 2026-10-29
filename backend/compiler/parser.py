@@ -29,6 +29,14 @@ ARITY = {
     "ROTATE": (1, 1, "ROTATE angle"),
     "EDGE": (0, 2, "EDGE  or  EDGE low high"),
     "VIGNETTE": (1, 1, "VIGNETTE strength"),
+    "BRIGHTNESS": (1, 1, "BRIGHTNESS amount (-100 to 100)"),
+    "CONTRAST": (1, 1, "CONTRAST factor (0.1 to 3.0)"),
+    "SATURATION": (1, 1, "SATURATION factor (0 to 3.0)"),
+    "FLIP": (1, 1, "FLIP HORIZONTAL or FLIP VERTICAL"),
+    "CROP": (4, 4, "CROP x y width height"),
+    "SHARPEN": (1, 1, "SHARPEN strength (0 to 3.0)"),
+    "THRESHOLD": (1, 1, "THRESHOLD value (0 to 255)"),
+    "MEDIAN_BLUR": (1, 1, "MEDIAN_BLUR odd_kernel_size (3 to 25)"),
 }
 
 
@@ -79,9 +87,15 @@ class Parser:
             )
 
         args: list = []
-        while self.current.type in (TokenType.NUMBER, TokenType.STRING):
+        while self.current.type in (TokenType.NUMBER, TokenType.STRING) or (
+            name == "FLIP" and self.current.type == TokenType.COMMAND
+            and self.current.value in ("HORIZONTAL", "VERTICAL")
+        ):
             arg = self._eat()
-            args.append(int(arg.value) if arg.type == TokenType.NUMBER else arg.value)
+            if arg.type == TokenType.NUMBER:
+                args.append(float(arg.value) if "." in arg.value else int(arg.value))
+            else:
+                args.append(arg.value)
 
         if self.current.type not in (TokenType.NEWLINE, TokenType.EOF):
             bad = self.current

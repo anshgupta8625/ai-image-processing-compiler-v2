@@ -60,6 +60,56 @@ def _op_edge(image: np.ndarray, low: int, high: int) -> np.ndarray:
     return cv2.Canny(gray, low, high)
 
 
+
+
+def _op_brightness(image: np.ndarray, amount: int) -> np.ndarray:
+    # Use signed arithmetic before clipping; convertScaleAbs would reflect
+    # negative values instead of darkening correctly.
+    return np.clip(image.astype(np.int16) + amount, 0, 255).astype(np.uint8)
+
+
+def _op_contrast(image: np.ndarray, factor: float) -> np.ndarray:
+    return np.clip((image.astype(np.float32) - 127.5) * factor + 127.5, 0, 255).astype(np.uint8)
+
+
+def _op_saturation(image: np.ndarray, factor: float) -> np.ndarray:
+    if image.ndim == 2:
+        return image.copy()
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype(np.float32)
+    hsv[:, :, 1] = np.clip(hsv[:, :, 1] * factor, 0, 255)
+    return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
+
+def _op_flip(image: np.ndarray, direction: str) -> np.ndarray:
+    return cv2.flip(image, 1 if direction == "HORIZONTAL" else 0)
+
+
+def _op_crop(image: np.ndarray, x: int, y: int, width: int, height: int) -> np.ndarray:
+    image_height, image_width = image.shape[:2]
+    if x + width > image_width or y + height > image_height:
+        raise ExecutionError(
+            f"CROP rectangle ({x}, {y}, {width}, {height}) is outside the current image ({image_width}x{image_height})."
+        )
+    return image[y:y + height, x:x + width].copy()
+
+
+def _op_sharpen(image: np.ndarray, strength: float) -> np.ndarray:
+    if strength == 0:
+        return image.copy()
+    blurred = cv2.GaussianBlur(image, (0, 0), 1.0)
+    return cv2.addWeighted(image, 1.0 + strength, blurred, -strength, 0)
+
+
+def _op_threshold(image: np.ndarray, value: int) -> np.ndarray:
+    gray = _op_grayscale(image)
+    _, result = cv2.threshold(gray, value, 255, cv2.THRESH_BINARY)
+    return result
+
+
+def _op_median_blur(image: np.ndarray, kernel: int) -> np.ndarray:
+    return cv2.medianBlur(image, kernel)
+
+
 def _axis(n: int) -> np.ndarray:
     """Coordinates running -1 .. 1 across an axis of n pixels."""
     if n == 1:
@@ -99,6 +149,14 @@ _HANDLERS = {
     "ROTATE": _op_rotate,
     "EDGE": _op_edge,
     "VIGNETTE": _op_vignette,
+    "BRIGHTNESS": _op_brightness,
+    "CONTRAST": _op_contrast,
+    "SATURATION": _op_saturation,
+    "FLIP": _op_flip,
+    "CROP": _op_crop,
+    "SHARPEN": _op_sharpen,
+    "THRESHOLD": _op_threshold,
+    "MEDIAN_BLUR": _op_median_blur,
 }
 
 
@@ -137,6 +195,10 @@ class Executor:
                     raise ExecutionError("No image loaded.", instr.line)
                 try:
                     image = handler(image, *instr.args)
+                except ExecutionError as exc:
+                    if exc.line is None:
+                        raise ExecutionError(exc.message, instr.line) from None
+                    raise
                 except cv2.error:
                     raise ExecutionError(
                         f"{instr.op} could not be applied to this image.", instr.line

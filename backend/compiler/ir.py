@@ -32,6 +32,14 @@ COST_PER_MP = {
     "ROTATE": 2.5,
     "EDGE": 12.0,
     "VIGNETTE": 6.0,  # measured at roughly half of EDGE: one float mask, one multiply per channel
+    "BRIGHTNESS": 1.2,
+    "CONTRAST": 1.5,
+    "SATURATION": 3.0,
+    "FLIP": 0.8,
+    "CROP": 0.5,
+    "SHARPEN": 5.0,
+    "THRESHOLD": 2.0,
+    "MEDIAN_BLUR": 6.0,
 }
 
 
@@ -67,6 +75,8 @@ def profile(instrs: list["Instr"], megapixels: float) -> list[tuple[float, float
         rows.append((mp, instr.cost(mp)))
         if instr.op == "RESIZE":
             mp = (instr.args[0] * instr.args[1]) / 1_000_000
+        elif instr.op == "CROP":
+            mp = (instr.args[2] * instr.args[3]) / 1_000_000
     return rows
 
 

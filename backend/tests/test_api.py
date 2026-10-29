@@ -36,7 +36,9 @@ def test_health():
 def test_limits_endpoint_exposes_the_whitelist():
     data = client.get("/api/limits").json()
     assert set(data["commands"]) == {
-        "LOAD", "SAVE", "RESIZE", "GRAYSCALE", "BLUR", "ROTATE", "EDGE", "VIGNETTE"
+        "LOAD", "SAVE", "RESIZE", "GRAYSCALE", "BLUR", "ROTATE", "EDGE", "VIGNETTE",
+        "BRIGHTNESS", "CONTRAST", "SATURATION", "FLIP", "CROP", "SHARPEN",
+        "THRESHOLD", "MEDIAN_BLUR",
     }
 
 

@@ -41,6 +41,8 @@ class Limits:
     MAX_DSL_CHARS = 8_000
     MAX_OPERATIONS = 50                      # pipeline length
     MAX_BLUR_RADIUS = 25
+    MAX_MEDIAN_BLUR_KERNEL = 25
+    MAX_CROP_DIM = 4096
     MIN_VIGNETTE_STRENGTH = 1
     MAX_VIGNETTE_STRENGTH = 100
     MIN_RESIZE_DIM = 1
@@ -50,6 +52,8 @@ class Limits:
 
 ALLOWED_COMMANDS = frozenset({
     "LOAD", "SAVE", "RESIZE", "GRAYSCALE", "BLUR", "ROTATE", "EDGE", "VIGNETTE",
+    "BRIGHTNESS", "CONTRAST", "SATURATION", "FLIP", "CROP", "SHARPEN",
+    "THRESHOLD", "MEDIAN_BLUR",
 })
 
 ALLOWED_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".webp"})
@@ -224,6 +228,77 @@ def validate_rotate(angle: Any, *, line: int | None = None) -> int:
         raise _reject("Angle must be a multiple of 90 between -360 and 360.",
                       "INVALID_ANGLE", line=line)
     return a % 360
+
+
+def _as_float(value: Any, field_name: str, line: int | None) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise _reject(f"{field_name} must be numeric.", "INVALID_PARAMETER_TYPE", line=line)
+    try:
+        number = float(str(value).strip())
+    except (TypeError, ValueError):
+        raise _reject(f"{field_name} must be numeric.", "INVALID_PARAMETER_TYPE", line=line) from None
+    if not __import__("math").isfinite(number):
+        raise _reject(f"{field_name} must be finite.", "INVALID_PARAMETER_TYPE", line=line)
+    return number
+
+
+def validate_brightness(value: Any, *, line: int | None = None) -> int:
+    n = _as_int(value, "Brightness", line)
+    if not -100 <= n <= 100:
+        raise _reject("Brightness must be between -100 and 100.", "INVALID_BRIGHTNESS", line=line)
+    return n
+
+
+def validate_contrast(value: Any, *, line: int | None = None) -> float:
+    n = _as_float(value, "Contrast factor", line)
+    if not 0.1 <= n <= 3.0:
+        raise _reject("Contrast factor must be between 0.1 and 3.0.", "INVALID_CONTRAST", line=line)
+    return n
+
+
+def validate_saturation(value: Any, *, line: int | None = None) -> float:
+    n = _as_float(value, "Saturation factor", line)
+    if not 0.0 <= n <= 3.0:
+        raise _reject("Saturation factor must be between 0 and 3.0.", "INVALID_SATURATION", line=line)
+    return n
+
+
+def validate_sharpen(value: Any, *, line: int | None = None) -> float:
+    n = _as_float(value, "Sharpen strength", line)
+    if not 0.0 <= n <= 3.0:
+        raise _reject("Sharpen strength must be between 0 and 3.0.", "INVALID_SHARPEN", line=line)
+    return n
+
+
+def validate_flip(direction: Any, *, line: int | None = None) -> str:
+    value = str(direction).upper()
+    if value not in ("HORIZONTAL", "VERTICAL"):
+        raise _reject("FLIP direction must be HORIZONTAL or VERTICAL.", "INVALID_FLIP", line=line)
+    return value
+
+
+def validate_crop(x: Any, y: Any, width: Any, height: Any, *, line: int | None = None) -> tuple[int, int, int, int]:
+    x, y, w, h = (_as_int(x, "Crop x", line), _as_int(y, "Crop y", line),
+                  _as_int(width, "Crop width", line), _as_int(height, "Crop height", line))
+    if x < 0 or y < 0 or w < 1 or h < 1:
+        raise _reject("CROP requires x and y >= 0 and positive width and height.", "INVALID_CROP", line=line)
+    if any(v > Limits.MAX_CROP_DIM for v in (x, y, w, h)) or w * h > Limits.MAX_PIXELS:
+        raise _reject("CROP values exceed the allowed image limits.", "INVALID_CROP", line=line)
+    return x, y, w, h
+
+
+def validate_threshold(value: Any, *, line: int | None = None) -> int:
+    n = _as_int(value, "Threshold", line)
+    if not 0 <= n <= 255:
+        raise _reject("Threshold must be between 0 and 255.", "INVALID_THRESHOLD", line=line)
+    return n
+
+
+def validate_median_blur(value: Any, *, line: int | None = None) -> int:
+    n = _as_int(value, "Median blur kernel size", line)
+    if n < 3 or n > Limits.MAX_MEDIAN_BLUR_KERNEL or n % 2 == 0:
+        raise _reject(f"Median blur kernel size must be odd and between 3 and {Limits.MAX_MEDIAN_BLUR_KERNEL}.", "INVALID_MEDIAN_BLUR", line=line)
+    return n
 
 
 # ---------------------------------------------------------------------------
@@ -415,8 +490,8 @@ CHECK_INFO = {
         "separator, '..', a leading dot or a disallowed extension."
     ),
     "Resource limits": (
-        "Hard ceilings on operations, blur radius, resize size, vignette "
-        "strength and image pixels stop denial-of-service by oversized work."
+        "Hard ceilings on operations, filter parameters, resize/crop dimensions, "
+        "and image pixels stop denial-of-service by oversized work."
     ),
     "Safe execution": (
         "Only whitelisted commands exist, and they run through a fixed "
@@ -426,7 +501,7 @@ CHECK_INFO = {
 
 _WORD_RE = re.compile(r"[A-Za-z_][A-Za-z_0-9]*")
 _STRING_LITERAL_RE = re.compile(r'"[^"\n]*"')
-_INT_RE = re.compile(r"-?\d+")
+_NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?")
 
 
 def _statements(source: str) -> Iterable[tuple[int, str]]:
@@ -459,7 +534,7 @@ def check_resource_limits(source: str) -> None:
             continue
         name = word.group(0).upper()
         rest = _STRING_LITERAL_RE.sub(" ", code[word.end():])
-        numbers = _INT_RE.findall(rest)
+        numbers = _NUMBER_RE.findall(rest)
 
         if name == "RESIZE" and len(numbers) == 2:
             validate_resize(numbers[0], numbers[1], line=number)
@@ -469,6 +544,24 @@ def check_resource_limits(source: str) -> None:
             validate_rotate(numbers[0], line=number)
         elif name == "VIGNETTE" and len(numbers) == 1:
             validate_vignette(numbers[0], line=number)
+        elif name == "BRIGHTNESS" and len(numbers) == 1:
+            validate_brightness(numbers[0], line=number)
+        elif name == "CONTRAST" and len(numbers) == 1:
+            validate_contrast(numbers[0], line=number)
+        elif name == "SATURATION" and len(numbers) == 1:
+            validate_saturation(numbers[0], line=number)
+        elif name == "SHARPEN" and len(numbers) == 1:
+            validate_sharpen(numbers[0], line=number)
+        elif name == "THRESHOLD" and len(numbers) == 1:
+            validate_threshold(numbers[0], line=number)
+        elif name == "MEDIAN_BLUR" and len(numbers) == 1:
+            validate_median_blur(numbers[0], line=number)
+        elif name == "CROP" and len(numbers) == 4:
+            validate_crop(*numbers, line=number)
+        elif name == "FLIP":
+            words = code.split()
+            if len(words) == 2:
+                validate_flip(words[1], line=number)
 
 
 def check_whitelist(source: str) -> None:

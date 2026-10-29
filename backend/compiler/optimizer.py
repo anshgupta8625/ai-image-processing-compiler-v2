@@ -171,8 +171,10 @@ class Optimizer:
                     note = "removed a repeated GRAYSCALE"
                     continue
                 seen = True
-            elif instr.op in ("RESIZE", "ROTATE", "BLUR", "EDGE"):
-                pass  # these preserve the single-channel property
+            elif instr.op in ("RESIZE", "ROTATE", "BLUR", "EDGE", "VIGNETTE",
+                              "BRIGHTNESS", "CONTRAST", "SATURATION", "FLIP",
+                              "CROP", "SHARPEN", "THRESHOLD", "MEDIAN_BLUR"):
+                pass  # these preserve a single-channel image if one already exists
             instr_out = instr
             out.append(instr_out)
         if note:
@@ -253,6 +255,8 @@ class Optimizer:
             sizes.append(mp)
             if instr.op == "RESIZE":
                 mp = (instr.args[0] * instr.args[1]) / 1_000_000
+            elif instr.op == "CROP":
+                mp = (instr.args[2] * instr.args[3]) / 1_000_000
         return sizes
 
 

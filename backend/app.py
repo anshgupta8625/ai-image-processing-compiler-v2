@@ -117,6 +117,7 @@ def limits():
         "max_lines": sec.Limits.MAX_DSL_LINES,
         "max_operations": sec.Limits.MAX_OPERATIONS,
         "max_blur_radius": sec.Limits.MAX_BLUR_RADIUS,
+        "max_median_blur_kernel": sec.Limits.MAX_MEDIAN_BLUR_KERNEL,
         "max_resize_dim": sec.Limits.MAX_RESIZE_DIM,
         "vignette_range": [sec.Limits.MIN_VIGNETTE_STRENGTH,
                            sec.Limits.MAX_VIGNETTE_STRENGTH],
