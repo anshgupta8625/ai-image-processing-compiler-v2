@@ -1,0 +1,9 @@
+
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://ai-image-processing-compiler-v2.onrender.com/api/$1"
+    }
+  ]
+}
